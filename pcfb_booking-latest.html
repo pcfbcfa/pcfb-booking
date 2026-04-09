@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PCFB — Appliance Booking</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --red:#C0392B;--red-dk:#922b21;--red-lt:#fdf2f2;--red-mid:#fadbd8;
+  --green:#1a7a4a;--green-lt:#eafaf1;--green-mid:#a9dfbf;
+  --amber:#d68910;--amber-lt:#fef9e7;
+  --blue:#1a5276;--blue-lt:#eaf2fb;--blue-mid:#aed6f1;
+  --grey-dk:#1c2833;--grey-md:#566573;--grey-lt:#eaecee;--grey-xlt:#f8f9fa;
+  --white:#fff;--shadow:0 2px 12px rgba(0,0,0,.07);
+  --radius:12px;--radius-sm:8px;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--grey-xlt);color:var(--grey-dk);min-height:100vh;padding-bottom:60px}
+
+/* ── Header ── */
+.app-header{background:var(--red);padding:0;overflow:hidden}
+.header-inner{max-width:720px;margin:0 auto;padding:18px 20px 16px;display:flex;align-items:center;gap:14px}
+.header-logo{width:42px;height:42px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;color:#fff;letter-spacing:.5px;flex-shrink:0}
+.header-text h1{font-size:17px;font-weight:600;color:#fff;letter-spacing:-.2px}
+.header-text p{font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;letter-spacing:.3px;text-transform:uppercase}
+
+/* ── Nav tabs ── */
+.nav-bar{background:#fff;border-bottom:1px solid var(--grey-lt);position:sticky;top:0;z-index:20;box-shadow:var(--shadow)}
+.nav-inner{max-width:720px;margin:0 auto;display:flex}
+.nav-tab{flex:1;padding:13px 8px;text-align:center;font-size:13px;font-weight:500;color:#aaa;cursor:pointer;border-bottom:3px solid transparent;transition:all .18s;letter-spacing:.1px}
+.nav-tab.active{color:var(--red);border-bottom-color:var(--red);font-weight:600}
+
+/* ── Container ── */
+.container{max-width:720px;margin:0 auto;padding:20px 16px}
+
+/* ── Cards ── */
+.card{background:#fff;border-radius:var(--radius);border:1px solid var(--grey-lt);padding:22px;margin-bottom:16px;box-shadow:var(--shadow)}
+.card-title{font-size:13px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.8px;margin-bottom:18px}
+
+/* ── Form elements ── */
+.field{margin-bottom:18px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--grey-md);margin-bottom:6px;letter-spacing:.1px}
+.field label span{font-weight:400;color:#aaa}
+input,select,textarea{width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);color:var(--grey-dk);background:#fff;outline:none;transition:border-color .2s,box-shadow .2s;appearance:none;-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(192,57,43,.08)}
+input[type=date],input[type=time]{font-family:var(--mono);font-size:13px}
+textarea{resize:vertical;min-height:80px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:480px){.field-row{grid-template-columns:1fr}}
+
+/* ── Appliance selector ── */
+.appliance-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.appliance-card{border:1.5px solid #ddd;border-radius:var(--radius);padding:16px 14px;cursor:pointer;transition:all .15s;text-align:center;background:#fff}
+.appliance-card:hover{border-color:var(--red);background:var(--red-lt)}
+.appliance-card.selected{border-color:var(--red);background:var(--red-lt);box-shadow:0 0 0 3px rgba(192,57,43,.1)}
+.appliance-icon{font-size:28px;margin-bottom:8px}
+.appliance-name{font-size:14px;font-weight:600;color:var(--grey-dk)}
+.appliance-desc{font-size:11px;color:#aaa;margin-top:3px}
+
+/* ── Calendar ── */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-nav{width:34px;height:34px;border-radius:50%;border:1.5px solid #ddd;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:#666;transition:all .15s}
+.cal-nav:hover{border-color:var(--red);color:var(--red)}
+.cal-month{font-size:15px;font-weight:600;color:var(--grey-dk)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-dow{text-align:center;font-size:11px;font-weight:600;color:#aaa;padding:4px 0;letter-spacing:.5px}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:13px;cursor:pointer;transition:all .15s;position:relative;font-weight:400}
+.cal-day:hover{background:var(--red-lt);color:var(--red)}
+.cal-day.today{font-weight:600;color:var(--red)}
+.cal-day.selected{background:var(--red);color:#fff;font-weight:600}
+.cal-day.has-booking{background:var(--amber-lt)}
+.cal-day.fully-booked{background:var(--red-mid);color:#666;cursor:default}
+.cal-day.fully-booked:hover{background:var(--red-mid);color:#666}
+.cal-day.past{color:#ccc;cursor:default}
+.cal-day.past:hover{background:transparent;color:#ccc}
+.cal-day.empty{cursor:default}
+.cal-dot{width:5px;height:5px;border-radius:50%;background:var(--amber);position:absolute;bottom:3px;left:50%;transform:translateX(-50%)}
+.cal-legend{display:flex;gap:14px;margin-top:12px;flex-wrap:wrap}
+.cal-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#888}
+.cal-legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+/* ── Time slots ── */
+.slots-header{font-size:13px;font-weight:600;color:var(--grey-md);margin-bottom:10px}
+.slot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media(max-width:400px){.slot-grid{grid-template-columns:repeat(2,1fr)}}
+.slot{padding:8px;text-align:center;border-radius:var(--radius-sm);border:1.5px solid #ddd;font-size:12px;cursor:pointer;transition:all .15s;font-family:var(--mono)}
+.slot.free{background:#fff;color:var(--grey-dk)}
+.slot.free:hover{border-color:var(--green);background:var(--green-lt);color:var(--green)}
+.slot.booked{background:var(--red-mid);border-color:var(--red-mid);color:#999;cursor:default}
+.slot.selected{background:var(--green);border-color:var(--green);color:#fff;font-weight:600}
+
+/* ── Booking list ── */
+.booking-item{border:1px solid var(--grey-lt);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;transition:all .15s}
+.booking-item:hover{border-color:#ccc;box-shadow:var(--shadow)}
+.booking-badge{padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0;margin-top:2px}
+.badge-pending{background:var(--amber-lt);color:var(--amber)}
+.badge-approved{background:var(--green-lt);color:var(--green)}
+.badge-rejected{background:var(--red-mid);color:var(--red-dk)}
+.booking-info{flex:1}
+.booking-title{font-size:14px;font-weight:600;color:var(--grey-dk)}
+.booking-meta{font-size:12px;color:#888;margin-top:3px;line-height:1.6}
+.booking-actions{display:flex;gap:6px;margin-top:10px}
+.btn-approve{padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.btn-reject{padding:6px 14px;background:#fff;color:var(--red);border:1.5px solid var(--red);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.btn-approve:hover{background:#166039}
+.btn-reject:hover{background:var(--red-lt)}
+
+/* ── Buttons ── */
+.btn-primary{width:100%;padding:14px;background:var(--red);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font);transition:background .2s;letter-spacing:.1px}
+.btn-primary:hover{background:var(--red-dk)}
+.btn-primary:disabled{background:#ccc;cursor:not-allowed}
+.btn-ghost{width:100%;padding:12px;background:transparent;border:1.5px solid #ddd;border-radius:var(--radius-sm);font-size:14px;color:#888;cursor:pointer;font-family:var(--font);margin-top:10px}
+.btn-ghost:hover{border-color:var(--red);color:var(--red)}
+
+/* ── PIN overlay ── */
+.pin-overlay{background:#fff;border-radius:var(--radius);border:1px solid var(--grey-lt);padding:30px 24px;text-align:center;box-shadow:var(--shadow)}
+.pin-badge{display:inline-block;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:14px;background:var(--blue-lt);color:var(--blue)}
+.pin-overlay h2{font-size:18px;font-weight:600;color:var(--grey-dk);margin-bottom:4px}
+.pin-overlay p{font-size:13px;color:#888;margin-bottom:20px}
+.pin-dots{display:flex;gap:12px;justify-content:center;margin-bottom:22px}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid #ddd;transition:all .2s}
+.pin-dot.filled{background:var(--blue);border-color:var(--blue)}
+.pin-dot.err{background:var(--red);border-color:var(--red)}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto}
+.pin-key{padding:15px;border:1.5px solid #ddd;border-radius:10px;font-size:20px;font-weight:500;cursor:pointer;background:#fff;color:var(--grey-dk);transition:all .15s;font-family:var(--font)}
+.pin-key:active{background:var(--grey-lt);transform:scale(.97)}
+.pin-err{color:var(--red);font-size:13px;margin-top:12px;min-height:18px}
+
+/* ── Misc ── */
+.hidden{display:none!important}
+.alert{padding:12px 14px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:14px;line-height:1.5}
+.alert.success{background:var(--green-lt);color:var(--green);border:1px solid var(--green-mid)}
+.alert.error{background:var(--red-lt);color:var(--red-dk);border:1px solid var(--red-mid)}
+.alert.info{background:var(--blue-lt);color:var(--blue);border:1px solid var(--blue-mid)}
+.alert.warning{background:var(--amber-lt);color:var(--amber);border:1px solid #f9e79f}
+.divider{border:none;border-top:1px solid var(--grey-lt);margin:18px 0}
+.setup-banner{background:var(--blue-lt);border:1px solid var(--blue-mid);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;color:var(--blue);margin-bottom:16px;line-height:1.6}
+.setup-banner strong{display:block;margin-bottom:4px;font-weight:600}
+.availability-empty{text-align:center;color:#aaa;font-size:13px;padding:20px;font-style:italic}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;margin-right:4px}
+.tag-fcv{background:#e8f4fd;color:#1a6fa8}
+.tag-trailer{background:#fef0e7;color:#c0530a}
+.config-row{display:flex;gap:8px;margin-top:8px}
+.config-row input{flex:1;font-size:12px;padding:8px 10px}
+.config-row button{padding:8px 14px;background:var(--red);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.empty-state{text-align:center;padding:40px 20px;color:#aaa}
+.empty-state .empty-icon{font-size:40px;margin-bottom:12px}
+.empty-state p{font-size:14px}
+
+.btn-cancel{padding:7px 14px;background:#fff;color:#888;border:1.5px solid #ddd;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s}
+.btn-cancel:hover{border-color:var(--red);color:var(--red);background:var(--red-lt)}
+.badge-cancelled{background:#f4f4f4;color:#888}
+.confirm-cancel{background:var(--red-lt);border:1px solid var(--red-mid);border-radius:8px;padding:12px 14px;margin-top:10px;font-size:13px;color:var(--red-dk)}
+.confirm-cancel p{margin-bottom:10px;font-weight:500}
+.confirm-cancel-btns{display:flex;gap:8px}
+.confirm-cancel-btns button{padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);border:none}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="header-inner">
+    <div class="header-logo">CFA</div>
+    <div class="header-text">
+      <h1>Appliance Booking</h1>
+      <p>Princes Country Fire Brigade</p>
+    </div>
+  </div>
+</div>
+
+<div class="nav-bar">
+  <div class="nav-inner">
+    <div class="nav-tab active" id="navBook"     onclick="showTab('book')">Book</div>
+    <div class="nav-tab"        id="navAvail"    onclick="showTab('avail')">Availability</div>
+    <div class="nav-tab"        id="navMyBook"   onclick="showTab('mybook')">My Bookings</div>
+    <div class="nav-tab"        id="navAllbook"  onclick="showTab('allbook')">All Bookings</div>
+    <div class="nav-tab"        id="navAdmin"    onclick="showTab('admin')">Admin</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Global message + loading banner -->
+  <div id="globalMsg" class="alert hidden" style="margin-bottom:12px"></div>
+  <div id="loadingBanner" class="hidden" style="background:var(--blue-lt);border:1px solid var(--blue-mid);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--blue);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+    <span style="animation:spin 1s linear infinite;display:inline-block">&#8635;</span> Loading bookings from Google Sheets...
+  </div>
+  <style>@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>
+
+  <!-- Setup banner -->
+  <div class="setup-banner hidden" id="setupBanner">
+    <strong>Connect to Google Sheets to enable bookings &amp; email</strong>
+    Paste your Google Apps Script Web App URL below.
+    <div class="config-row">
+      <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/..."/>
+      <button onclick="saveScriptUrl()">Save</button>
+    </div>
+  </div>
+
+  <!-- ══ BOOK TAB ══ -->
+  <div id="tabBook">
+
+    <!-- Step 1: Choose appliance -->
+    <div class="card">
+      <div class="card-title">1 — Select appliance</div>
+      <div class="appliance-grid">
+        <div class="appliance-card" id="appFCV" onclick="selectAppliance('FCV')">
+          <div class="appliance-icon">&#128658;</div>
+          <div class="appliance-name">FCV</div>
+          <div class="appliance-desc">Forward Command Vehicle</div>
+        </div>
+        <div class="appliance-card" id="appTrailer" onclick="selectAppliance('Trailer')">
+          <div class="appliance-icon">&#128667;</div>
+          <div class="appliance-name">Trailer</div>
+          <div class="appliance-desc">Equipment Trailer</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Or select from full list</label>
+        <select id="applianceSelect" onchange="selectAppliance(this.value)">
+          <option value="">— Choose appliance —</option>
+          <option value="FCV">FCV (Forward Command Vehicle)</option>
+          <option value="Trailer">Trailer (Equipment Trailer)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Step 2: Date & Time -->
+    <div class="card">
+      <div class="card-title">2 — Date &amp; time</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Start date</label>
+          <input type="date" id="startDate" onchange="onDateChange()"/>
+        </div>
+        <div class="field">
+          <label>Number of days</label>
+          <input type="number" id="numDays" value="1" min="1" max="30" onchange="calcEndDate()"/>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Start time</label>
+          <input type="time" id="startTime" value="08:00"/>
+        </div>
+        <div class="field">
+          <label>End time</label>
+          <input type="time" id="endTime" value="17:00"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>End date <span>(auto-calculated)</span></label>
+        <input type="date" id="endDate" readonly style="background:#f8f9fa;color:#888"/>
+      </div>
+
+      <!-- Availability check result -->
+      <div id="availCheck" class="hidden"></div>
+    </div>
+
+    <!-- Step 3: Your details -->
+    <div class="card">
+      <div class="card-title">3 — Your details</div>
+      <div class="field">
+        <label>Full name</label>
+        <input type="text" id="memberName" placeholder="e.g. John Smith"/>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Email address</label>
+          <input type="email" id="memberEmail" placeholder="john@example.com"/>
+        </div>
+        <div class="field">
+          <label>Phone number</label>
+          <input type="tel" id="memberPhone" placeholder="04XX XXX XXX"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Purpose of booking</label>
+        <textarea id="bookPurpose" placeholder="Describe how the appliance will be used, where it's going, and who is responsible..."></textarea>
+      </div>
+    </div>
+
+    <div id="bookError" class="alert error hidden"></div>
+    <button class="btn-primary" onclick="submitBooking()" id="bookBtn">Submit Booking Request</button>
+    <div id="bookSuccess" class="hidden" style="margin-top:16px"></div>
+
+  </div>
+
+  <!-- ══ AVAILABILITY TAB ══ -->
+  <div id="tabAvail" class="hidden">
+    <div class="card">
+      <div class="card-title">Appliance availability</div>
+
+      <!-- Appliance toggle -->
+      <div style="display:flex;gap:10px;margin-bottom:18px">
+        <button onclick="setAvailApp('FCV')"     id="availBtnFCV"     style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #ddd;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);background:#fff;color:#555;transition:all .15s">FCV</button>
+        <button onclick="setAvailApp('Trailer')" id="availBtnTrailer" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #ddd;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);background:#fff;color:#555;transition:all .15s">Trailer</button>
+      </div>
+
+      <!-- Calendar -->
+      <div class="cal-header">
+        <button class="cal-nav" onclick="changeMonth(-1)">&#8249;</button>
+        <div class="cal-month" id="calMonthLabel"></div>
+        <button class="cal-nav" onclick="changeMonth(1)">&#8250;</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-legend" style="margin-top:14px">
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#d5f5e3"></div> Available</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--amber-lt);border:1px solid #f9e79f"></div> Partially booked</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--red-mid)"></div> Fully booked</div>
+      </div>
+    </div>
+
+    <!-- Selected day detail -->
+    <div class="card" id="dayDetailCard">
+      <div class="card-title" id="dayDetailTitle">Select a date to view bookings</div>
+      <div id="dayDetailList"><div class="availability-empty">Click any date on the calendar above</div></div>
+    </div>
+  </div>
+
+  <!-- ══ MY BOOKINGS TAB ══ -->
+  <div id="tabMybook" class="hidden">
+    <div class="card">
+      <div class="card-title">Find your bookings</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Your email</label>
+          <input type="email" id="lookupEmail" placeholder="your@email.com"/>
+        </div>
+        <div class="field" style="display:flex;align-items:flex-end">
+          <button onclick="lookupBookings()" class="btn-primary" style="padding:11px 14px;font-size:14px">Search</button>
+        </div>
+      </div>
+    </div>
+    <div id="myBookingsList"></div>
+  </div>
+
+
+  <!-- ══ ALL BOOKINGS TAB ══ -->
+  <div id="tabAllbook" class="hidden">
+
+    <!-- Filter bar -->
+    <div class="card" style="padding:16px 20px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+        <div style="flex:1;min-width:160px;position:relative">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#aaa;font-size:14px;pointer-events:none">&#128269;</span>
+          <input type="text" id="allSearch" placeholder="Search name, appliance..." oninput="renderAllBookings()"
+            style="padding:9px 12px 9px 32px;font-size:13px;width:100%;border:1.5px solid #ddd;border-radius:8px;font-family:var(--font);outline:none"/>
+        </div>
+        <select id="allFilterStatus" onchange="renderAllBookings()" style="padding:9px 12px;font-size:13px;border:1.5px solid #ddd;border-radius:8px;font-family:var(--font);outline:none;background:#fff;min-width:130px">
+          <option value="">All statuses</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <select id="allFilterApp" onchange="renderAllBookings()" style="padding:9px 12px;font-size:13px;border:1.5px solid #ddd;border-radius:8px;font-family:var(--font);outline:none;background:#fff;min-width:120px">
+          <option value="">All appliances</option>
+          <option value="FCV">FCV</option>
+          <option value="Trailer">Trailer</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Summary counts -->
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:80px;background:#fff;border:1px solid var(--grey-lt);border-radius:10px;padding:12px;text-align:center;box-shadow:var(--shadow)">
+        <div style="font-size:22px;font-weight:700;color:var(--grey-dk)" id="countTotal">0</div>
+        <div style="font-size:11px;color:#aaa;margin-top:2px;text-transform:uppercase;letter-spacing:.5px">Total</div>
+      </div>
+      <div style="flex:1;min-width:80px;background:#fff;border:1px solid var(--grey-lt);border-radius:10px;padding:12px;text-align:center;box-shadow:var(--shadow)">
+        <div style="font-size:22px;font-weight:700;color:var(--amber)" id="countPending">0</div>
+        <div style="font-size:11px;color:#aaa;margin-top:2px;text-transform:uppercase;letter-spacing:.5px">Pending</div>
+      </div>
+      <div style="flex:1;min-width:80px;background:#fff;border:1px solid var(--grey-lt);border-radius:10px;padding:12px;text-align:center;box-shadow:var(--shadow)">
+        <div style="font-size:22px;font-weight:700;color:var(--green)" id="countApproved">0</div>
+        <div style="font-size:11px;color:#aaa;margin-top:2px;text-transform:uppercase;letter-spacing:.5px">Approved</div>
+      </div>
+      <div style="flex:1;min-width:80px;background:#fff;border:1px solid var(--grey-lt);border-radius:10px;padding:12px;text-align:center;box-shadow:var(--shadow)">
+        <div style="font-size:22px;font-weight:700;color:#888" id="countCancelled">0</div>
+        <div style="font-size:11px;color:#aaa;margin-top:2px;text-transform:uppercase;letter-spacing:.5px">Cancelled</div>
+      </div>
+    </div>
+
+    <div id="allBookingsPublicList"></div>
+  </div>
+
+  <!-- ══ ADMIN TAB ══ -->
+  <div id="tabAdmin" class="hidden">
+    <div id="adminPinScreen">
+      <div class="pin-overlay">
+        <div class="pin-badge">Admin Access</div>
+        <h2>Admin Login</h2>
+        <p>Enter your 4-digit admin PIN</p>
+        <div class="pin-dots">
+          <div class="pin-dot" id="apd0"></div><div class="pin-dot" id="apd1"></div>
+          <div class="pin-dot" id="apd2"></div><div class="pin-dot" id="apd3"></div>
+        </div>
+        <div class="pin-keypad">
+          <button class="pin-key" onclick="adminPin('1')">1</button>
+          <button class="pin-key" onclick="adminPin('2')">2</button>
+          <button class="pin-key" onclick="adminPin('3')">3</button>
+          <button class="pin-key" onclick="adminPin('4')">4</button>
+          <button class="pin-key" onclick="adminPin('5')">5</button>
+          <button class="pin-key" onclick="adminPin('6')">6</button>
+          <button class="pin-key" onclick="adminPin('7')">7</button>
+          <button class="pin-key" onclick="adminPin('8')">8</button>
+          <button class="pin-key" onclick="adminPin('9')">9</button>
+          <button class="pin-key" onclick="adminPin('c')" style="font-size:12px;color:#aaa">Clear</button>
+          <button class="pin-key" onclick="adminPin('0')">0</button>
+          <button class="pin-key" onclick="adminPin('del')" style="font-size:15px;color:#888">&#9003;</button>
+        </div>
+        <div class="pin-err" id="adminPinErr"></div>
+        <div style="margin-top:14px;font-size:11px;color:#ccc">Default PIN: 1234</div>
+      </div>
+    </div>
+
+    <div id="adminPanel" class="hidden">
+      <div class="alert info" style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <span>&#128737;</span> Admin panel — approve or reject booking requests
+      </div>
+
+      <!-- Pending bookings -->
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Pending approval</span>
+          <span id="pendingCount" style="background:var(--amber-lt);color:var(--amber);font-size:12px;font-weight:600;padding:2px 10px;border-radius:12px">0</span>
+        </div>
+        <div id="pendingList"><div class="empty-state"><div class="empty-icon">&#9989;</div><p>No pending bookings</p></div></div>
+      </div>
+
+      <!-- All bookings -->
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>All bookings</span>
+          <button onclick="loadAllBookings()" style="font-size:12px;color:var(--blue);background:none;border:none;cursor:pointer;font-family:var(--font);font-weight:500">Refresh &#8635;</button>
+        </div>
+        <div id="allBookingsList"><div class="empty-state"><div class="empty-icon">&#128197;</div><p>No bookings yet</p></div></div>
+      </div>
+
+      <!-- Settings -->
+      <div class="card">
+        <div class="card-title">Settings</div>
+        <div class="field">
+          <label>Google Apps Script URL</label>
+          <input type="text" id="scriptUrlAdmin" placeholder="https://script.google.com/macros/s/..."/>
+          <button onclick="saveScriptUrlAdmin()" style="margin-top:8px;padding:9px 18px;background:var(--red);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Save URL</button>
+          <div id="scriptSaveMsg" style="font-size:12px;margin-top:6px;min-height:14px"></div>
+        </div>
+        <hr class="divider"/>
+        <div class="field">
+          <label>Admin notification email</label>
+          <input type="email" id="adminEmail" placeholder="admin@pcfb.org.au"/>
+          <button onclick="saveAdminEmail()" style="margin-top:8px;padding:9px 18px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Save Email</button>
+          <div id="adminEmailMsg" style="font-size:12px;margin-top:6px;min-height:14px"></div>
+        </div>
+        <hr class="divider"/>
+        <div class="field">
+          <label>Change admin PIN</label>
+          <div style="display:flex;gap:8px">
+            <input type="password" id="newAdminPin" placeholder="New 4-digit PIN" maxlength="4" style="flex:1"/>
+            <button onclick="changeAdminPin()" style="padding:10px 16px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">Update PIN</button>
+          </div>
+          <div id="pinChangeMsg" style="font-size:12px;margin-top:6px;min-height:14px"></div>
+        </div>
+      </div>
+
+      <button class="btn-ghost" onclick="lockAdmin()">&#128274; Lock Admin</button>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+// PCFB APPLIANCE BOOKING — complete rewrite
+// Source of truth: Google Sheets (read on every load)
+// localStorage: ONLY for script URL, admin email, admin PIN
+// ════════════════════════════════════════════════════════════════════
+
+let SCRIPT_URL  = localStorage.getItem("pcfb_book_url")          || "";
+let ADMIN_PIN   = localStorage.getItem("pcfb_book_pin")          || "1234";
+let ADMIN_EMAIL = localStorage.getItem("pcfb_book_admin_email")  || "";
+
+let bookings      = [];   // always loaded fresh from Sheets
+let bookingsLoaded= false;
+let adminUnlocked = false;
+let adminPinBuf   = "";
+let selectedAppliance = "";
+let currentAvailApp   = "FCV";
+let calYear, calMonth;
+let myBookingsEmail = "";
+
+const APPLIANCES = {
+  FCV:     { name:"FCV",     full:"Forward Command Vehicle", icon:"&#128658;" },
+  Trailer: { name:"Trailer", full:"Equipment Trailer",        icon:"&#128667;" },
+};
+
+// ════════════════════════════════════════════════════════════════════
+// INIT & LOAD
+// ════════════════════════════════════════════════════════════════════
+async function init(){
+  const today = new Date();
+  calYear  = today.getFullYear();
+  calMonth = today.getMonth();
+  setMinDates();
+  calcEndDate();
+
+  // Populate settings fields if already saved
+  if(SCRIPT_URL){
+    document.getElementById("setupBanner").classList.add("hidden");
+    document.getElementById("scriptUrlAdmin").value = SCRIPT_URL;
+  } else {
+    document.getElementById("setupBanner").classList.remove("hidden");
+  }
+  if(ADMIN_EMAIL) document.getElementById("adminEmail").value = ADMIN_EMAIL;
+
+  setAvailApp("FCV");
+  showTab("book");
+
+  // Load bookings from Sheets on startup
+  await fetchBookingsFromSheets();
+}
+
+// Fetch all bookings from Google Sheets via doGet
+async function fetchBookingsFromSheets(){
+  setLoadingState(true);
+  if(!SCRIPT_URL){
+    setLoadingState(false);
+    return;
+  }
+  try{
+    const url = SCRIPT_URL + "?type=get_all_bookings&ts=" + Date.now();
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if(data.bookings && Array.isArray(data.bookings)){
+      bookings = data.bookings;
+      bookingsLoaded = true;
+    }
+  }catch(e){
+    console.warn("Could not load bookings from Sheets:", e);
+    showGlobalMsg("Could not connect to Google Sheets. Check the URL in Admin settings.", "error");
+  }
+  setLoadingState(false);
+  // Refresh any active view
+  renderAllBookings();
+  renderCalendar();
+  if(adminUnlocked) loadAllBookings();
+}
+
+function setLoadingState(loading){
+  const banner = document.getElementById("loadingBanner");
+  if(banner) banner.classList.toggle("hidden", !loading);
+}
+
+function showGlobalMsg(msg, type){
+  const el = document.getElementById("globalMsg");
+  if(!el) return;
+  el.className = "alert " + type;
+  el.textContent = msg;
+  el.classList.remove("hidden");
+  setTimeout(()=>el.classList.add("hidden"), 6000);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// TAB NAVIGATION
+// ════════════════════════════════════════════════════════════════════
+function showTab(tab){
+  ["book","avail","mybook","allbook","admin"].forEach(t=>{
+    document.getElementById("tab"+cap(t)).classList.toggle("hidden", t!==tab);
+    document.getElementById("nav"+cap(t)).classList.toggle("active",  t===tab);
+  });
+  if(tab==="avail")   { renderCalendar(); }
+  if(tab==="allbook") { renderAllBookings(); }
+  if(tab==="admin" && adminUnlocked) { loadAllBookings(); }
+}
+
+function cap(s){
+  const m = {allbook:"Allbook", mybook:"Mybook"};
+  return m[s] || (s.charAt(0).toUpperCase()+s.slice(1));
+}
+
+// ════════════════════════════════════════════════════════════════════
+// BOOKING FORM
+// ════════════════════════════════════════════════════════════════════
+function selectAppliance(val){
+  selectedAppliance = val;
+  document.getElementById("appFCV").classList.toggle("selected",     val==="FCV");
+  document.getElementById("appTrailer").classList.toggle("selected", val==="Trailer");
+  document.getElementById("applianceSelect").value = val;
+  checkAvailability();
+}
+
+function setMinDates(){
+  const today = new Date().toISOString().split("T")[0];
+  document.getElementById("startDate").min   = today;
+  document.getElementById("startDate").value = today;
+  calcEndDate();
+}
+
+function calcEndDate(){
+  const start = document.getElementById("startDate").value;
+  const days  = parseInt(document.getElementById("numDays").value)||1;
+  if(!start) return;
+  const d = new Date(start);
+  d.setDate(d.getDate() + days - 1);
+  document.getElementById("endDate").value = d.toISOString().split("T")[0];
+  checkAvailability();
+}
+
+function onDateChange(){ calcEndDate(); }
+
+function checkAvailability(){
+  if(!selectedAppliance) return;
+  const start = document.getElementById("startDate").value;
+  const end   = document.getElementById("endDate").value;
+  if(!start||!end) return;
+  const conflicts = bookings.filter(b=>
+    b.appliance===selectedAppliance &&
+    b.status!=="rejected" && b.status!=="cancelled" &&
+    b.startDate<=end && b.endDate>=start
+  );
+  const el = document.getElementById("availCheck");
+  if(conflicts.length){
+    const names = conflicts.map(b=>`${b.memberName} (${fmtDate(b.startDate)}–${fmtDate(b.endDate)}, ${b.startTime}–${b.endTime})`).join("; ");
+    el.className="alert warning";
+    el.innerHTML=`&#9888; <strong>Conflict detected</strong> — ${conflicts.length} existing booking(s) overlap:<br><small>${names}</small><br>You can still submit; admin will confirm.`;
+    el.classList.remove("hidden");
+  } else {
+    el.className="alert success";
+    el.innerHTML=`&#9989; <strong>${selectedAppliance} appears available</strong> for your selected dates.`;
+    el.classList.remove("hidden");
+  }
+}
+
+async function submitBooking(){
+  const appliance   = selectedAppliance;
+  const startDate   = document.getElementById("startDate").value;
+  const endDate     = document.getElementById("endDate").value;
+  const startTime   = document.getElementById("startTime").value;
+  const endTime     = document.getElementById("endTime").value;
+  const numDays     = parseInt(document.getElementById("numDays").value)||1;
+  const memberName  = document.getElementById("memberName").value.trim();
+  const memberEmail = document.getElementById("memberEmail").value.trim();
+  const memberPhone = document.getElementById("memberPhone").value.trim();
+  const purpose     = document.getElementById("bookPurpose").value.trim();
+  const errEl       = document.getElementById("bookError");
+
+  if(!appliance)    { showErr(errEl,"Please select an appliance."); return; }
+  if(!startDate)    { showErr(errEl,"Please select a start date."); return; }
+  if(!memberName)   { showErr(errEl,"Please enter your name."); return; }
+  if(!memberEmail||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(memberEmail)){ showErr(errEl,"Please enter a valid email."); return; }
+  if(!memberPhone)  { showErr(errEl,"Please enter your phone number."); return; }
+  if(!purpose)      { showErr(errEl,"Please describe the purpose."); return; }
+  if(startTime>=endTime){ showErr(errEl,"End time must be after start time."); return; }
+  if(!SCRIPT_URL)   { showErr(errEl,"No Google Sheets URL configured. Ask admin to set it up."); return; }
+
+  const btn = document.getElementById("bookBtn");
+  btn.disabled=true; btn.textContent="Submitting...";
+
+  const booking = {
+    id: "BK"+Date.now().toString().slice(-8),
+    appliance, startDate, endDate, startTime, endTime, numDays,
+    memberName, memberEmail, memberPhone, purpose,
+    status: "pending",
+    submittedAt: new Date().toISOString(),
+    adminEmail: ADMIN_EMAIL,
+  };
+
+  const synced = await postToSheets({ type:"new_booking", booking });
+
+  btn.disabled=false; btn.textContent="Submit Booking Request";
+
+  if(synced){
+    bookings.unshift(booking);
+    const successEl = document.getElementById("bookSuccess");
+    successEl.innerHTML=`<div class="alert success"><strong>&#9989; Booking submitted — ID: ${booking.id}</strong><br>
+      A confirmation email has been sent to <strong>${memberEmail}</strong>.<br>You'll receive another email once approved by admin.</div>`;
+    successEl.classList.remove("hidden");
+    errEl.classList.add("hidden");
+    resetBookingForm();
+    renderCalendar(); renderAllBookings();
+  } else {
+    showErr(errEl,"Could not reach Google Sheets. Please try again or contact admin.");
+  }
+}
+
+function resetBookingForm(){
+  selectedAppliance="";
+  document.getElementById("appFCV").classList.remove("selected");
+  document.getElementById("appTrailer").classList.remove("selected");
+  document.getElementById("applianceSelect").value="";
+  document.getElementById("memberName").value="";
+  document.getElementById("memberEmail").value="";
+  document.getElementById("memberPhone").value="";
+  document.getElementById("bookPurpose").value="";
+  document.getElementById("availCheck").classList.add("hidden");
+  setMinDates();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// AVAILABILITY CALENDAR
+// ════════════════════════════════════════════════════════════════════
+function setAvailApp(app){
+  currentAvailApp = app;
+  const btnFCV     = document.getElementById("availBtnFCV");
+  const btnTrailer = document.getElementById("availBtnTrailer");
+  [btnFCV,btnTrailer].forEach(b=>{ b.style.background="#fff"; b.style.color="#555"; b.style.borderColor="#ddd"; });
+  const active = app==="FCV" ? btnFCV : btnTrailer;
+  active.style.background="var(--red)"; active.style.color="#fff"; active.style.borderColor="var(--red)";
+  renderCalendar();
+}
+
+function changeMonth(d){
+  calMonth+=d;
+  if(calMonth>11){calMonth=0;calYear++;}
+  if(calMonth<0) {calMonth=11;calYear--;}
+  renderCalendar();
+}
+
+function renderCalendar(){
+  const months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  document.getElementById("calMonthLabel").textContent = months[calMonth]+" "+calYear;
+
+  const today      = new Date();
+  const firstDay   = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth= new Date(calYear, calMonth+1, 0).getDate();
+
+  // Build per-day booking map: dayMap[d] = array of active bookings
+  const dayMap = {};
+  bookings
+    .filter(b=> b.appliance===currentAvailApp && b.status!=="rejected" && b.status!=="cancelled")
+    .forEach(b=>{
+      let cur = new Date(b.startDate+"T00:00:00");
+      const end = new Date(b.endDate+"T00:00:00");
+      while(cur<=end){
+        if(cur.getFullYear()===calYear && cur.getMonth()===calMonth){
+          const k = cur.getDate();
+          if(!dayMap[k]) dayMap[k]=[];
+          dayMap[k].push(b);
+        }
+        cur.setDate(cur.getDate()+1);
+      }
+    });
+
+  const dows=["Su","Mo","Tu","We","Th","Fr","Sa"];
+  let html = dows.map(d=>`<div class="cal-dow">${d}</div>`).join("");
+  for(let i=0;i<firstDay;i++) html+=`<div class="cal-day empty"></div>`;
+
+  for(let d=1;d<=daysInMonth;d++){
+    const thisDate = new Date(calYear,calMonth,d);
+    const todayStart = new Date(today.getFullYear(),today.getMonth(),today.getDate());
+    const isPast   = thisDate < todayStart;
+    const isToday  = d===today.getDate() && calMonth===today.getMonth() && calYear===today.getFullYear();
+    const dayBks   = dayMap[d] || [];
+    const count    = dayBks.length;
+
+    let cls = "cal-day";
+    if(isPast)        cls+=" past";
+    else if(count>=2) cls+=" fully-booked";
+    else if(count===1)cls+=" has-booking";
+    if(isToday)       cls+=" today";
+
+    const dot = count>0 && !isPast ? `<div class="cal-dot"></div>` : "";
+    html+=`<div class="${cls}" onclick="selectCalDay(${d})">${d}${dot}</div>`;
+  }
+
+  document.getElementById("calGrid").innerHTML = html;
+}
+
+function selectCalDay(day){
+  // Highlight selected day
+  document.querySelectorAll(".cal-day").forEach(el=>el.classList.remove("selected"));
+  event.currentTarget.classList.add("selected");
+
+  const pad = n=>String(n).padStart(2,"0");
+  const iso = `${calYear}-${pad(calMonth+1)}-${pad(day)}`;
+  const title = document.getElementById("dayDetailTitle");
+  const list  = document.getElementById("dayDetailList");
+
+  const dayBookings = bookings.filter(b=>
+    b.appliance===currentAvailApp &&
+    b.status!=="rejected" && b.status!=="cancelled" &&
+    b.startDate<=iso && b.endDate>=iso
+  );
+
+  title.textContent = `${currentAvailApp} — ${fmtDate(iso)}`;
+
+  if(!dayBookings.length){
+    list.innerHTML=`<div class="availability-empty">&#9989; <strong>${currentAvailApp} is available</strong> — no bookings on this date</div>`;
+    return;
+  }
+
+  // Show conflict warning if multiple bookings
+  const conflictBanner = dayBookings.length>1
+    ? `<div class="alert warning" style="margin-bottom:12px">
+        &#9888; <strong>Conflict — ${dayBookings.length} bookings overlap on this day.</strong>
+        These bookings cover the same date. Admin should review.
+       </div>`
+    : "";
+
+  list.innerHTML = conflictBanner + dayBookings.map(b=>{
+    const badgeCls = b.status==="approved"?"badge-approved":"badge-pending";
+    const statusLabel = b.status.charAt(0).toUpperCase()+b.status.slice(1);
+    // Check if this specific booking has a time overlap with others on same day
+    const hasTimeOverlap = dayBookings.filter(other=>
+      other.id!==b.id &&
+      b.startTime < other.endTime &&
+      b.endTime   > other.startTime
+    ).length>0;
+    const overlapTag = hasTimeOverlap
+      ? `<span style="font-size:10px;font-weight:700;background:var(--red-mid);color:var(--red-dk);padding:2px 7px;border-radius:10px;margin-left:6px">TIME CONFLICT</span>`
+      : "";
+    return`<div class="booking-item" style="border-left:3px solid ${b.status==='approved'?'var(--green)':'var(--amber)'}">
+      <div style="flex-shrink:0">
+        <span class="booking-badge ${badgeCls}">${statusLabel}</span>
+      </div>
+      <div class="booking-info">
+        <div class="booking-title">${b.memberName}${overlapTag}</div>
+        <div class="booking-meta">
+          <strong>Time:</strong> ${b.startTime} – ${b.endTime}<br>
+          <strong>Period:</strong> ${fmtDate(b.startDate)} – ${fmtDate(b.endDate)} (${b.numDays} day(s))<br>
+          <strong>Purpose:</strong> ${b.purpose}<br>
+          <strong>Contact:</strong> ${b.memberEmail} &bull; ${b.memberPhone}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ════════════════════════════════════════════════════════════════════
+// MY BOOKINGS — with cancel
+// ════════════════════════════════════════════════════════════════════
+async function lookupBookings(){
+  const email = document.getElementById("lookupEmail").value.trim().toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    document.getElementById("myBookingsList").innerHTML=`<div class="alert error">Please enter a valid email address.</div>`;
+    return;
+  }
+  myBookingsEmail = email;
+
+  const el = document.getElementById("myBookingsList");
+  el.innerHTML=`<div class="alert info">&#8987; Searching...</div>`;
+
+  // Always fetch fresh from Sheets
+  let myBookings = [];
+  if(SCRIPT_URL){
+    try{
+      const resp = await fetch(SCRIPT_URL+"?type=get_bookings&email="+encodeURIComponent(email)+"&ts="+Date.now());
+      const data = await resp.json();
+      if(data.bookings) myBookings = data.bookings;
+    }catch(e){
+      // Fall back to in-memory
+      myBookings = bookings.filter(b=>b.memberEmail.toLowerCase()===email);
+    }
+  } else {
+    myBookings = bookings.filter(b=>b.memberEmail.toLowerCase()===email);
+  }
+
+  renderMyBookings(myBookings);
+}
+
+function renderMyBookings(myBookings){
+  const el = document.getElementById("myBookingsList");
+  if(!myBookings.length){
+    el.innerHTML=`<div class="card"><div class="empty-state"><div class="empty-icon">&#128197;</div><p>No bookings found for ${myBookingsEmail}</p></div></div>`;
+    return;
+  }
+  // Sort upcoming first
+  const sorted = [...myBookings].sort((a,b)=>a.startDate.localeCompare(b.startDate));
+  el.innerHTML = sorted.map(b=>{
+    const badgeCls    = b.status==="approved"?"badge-approved":b.status==="rejected"?"badge-rejected":b.status==="cancelled"?"badge-cancelled":"badge-pending";
+    const statusLabel = b.status.charAt(0).toUpperCase()+b.status.slice(1);
+    const appTag      = `<span class="tag tag-${b.appliance.toLowerCase()}">${b.appliance}</span>`;
+    const canCancel   = b.status==="pending" || b.status==="approved";
+    return`<div class="card" style="padding:16px" id="mybk-${b.id}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:8px">
+        <div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:3px">${appTag} ${b.memberName}</div>
+          <div style="font-size:11px;color:#aaa;font-family:var(--mono)">${b.id}</div>
+        </div>
+        <span class="booking-badge ${badgeCls}" style="flex-shrink:0;margin-top:2px">${statusLabel}</span>
+      </div>
+      <div style="font-size:12px;color:#666;line-height:1.9">
+        <strong>Dates:</strong> ${fmtDate(b.startDate)} – ${fmtDate(b.endDate)} (${b.numDays} day(s))<br>
+        <strong>Time:</strong> ${b.startTime} – ${b.endTime}<br>
+        <strong>Purpose:</strong> ${b.purpose}
+      </div>
+      ${canCancel?`<div style="margin-top:12px;text-align:right"><button class="btn-cancel" onclick="showCancelConfirm('${b.id}')">Cancel booking</button></div>`:""}
+      <div id="cancel-confirm-${b.id}" class="hidden"></div>
+    </div>`;
+  }).join("");
+}
+
+function showCancelConfirm(id){
+  const el = document.getElementById("cancel-confirm-"+id);
+  el.innerHTML=`<div class="confirm-cancel">
+    <p>Are you sure you want to cancel this booking? This cannot be undone.</p>
+    <div class="confirm-cancel-btns">
+      <button style="background:var(--red);color:#fff" onclick="cancelBooking('${id}')">Yes, cancel it</button>
+      <button style="background:#fff;color:#888;border:1.5px solid #ddd" onclick="hideCancelConfirm('${id}')">Keep booking</button>
+    </div>
+  </div>`;
+  el.classList.remove("hidden");
+}
+
+function hideCancelConfirm(id){
+  document.getElementById("cancel-confirm-"+id).classList.add("hidden");
+}
+
+async function cancelBooking(id){
+  const btn = document.querySelector(`#mybk-${id} .btn-cancel`);
+  if(btn){ btn.disabled=true; btn.textContent="Cancelling..."; }
+
+  const bk = bookings.find(b=>b.id===id);
+  if(bk){ bk.status="cancelled"; bk.updatedAt=new Date().toISOString(); }
+
+  if(SCRIPT_URL){
+    await postToSheets({ type:"update_booking", id, status:"cancelled", booking:bk, adminEmail:ADMIN_EMAIL });
+  }
+
+  // Refresh from Sheets
+  await fetchBookingsFromSheets();
+  lookupBookings();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// ALL BOOKINGS VIEW (public)
+// ════════════════════════════════════════════════════════════════════
+function renderAllBookings(){
+  const q       = (document.getElementById("allSearch")||{value:""}).value.toLowerCase();
+  const fStatus = (document.getElementById("allFilterStatus")||{value:""}).value;
+  const fApp    = (document.getElementById("allFilterApp")||{value:""}).value;
+
+  const filtered = [...bookings]
+    .sort((a,b)=>b.submittedAt.localeCompare(a.submittedAt))
+    .filter(b=>{
+      const mQ   = !q || b.memberName.toLowerCase().includes(q)||b.appliance.toLowerCase().includes(q)||b.purpose.toLowerCase().includes(q);
+      const mSt  = !fStatus || b.status===fStatus;
+      const mApp = !fApp    || b.appliance===fApp;
+      return mQ && mSt && mApp;
+    });
+
+  document.getElementById("countTotal").textContent    = bookings.length;
+  document.getElementById("countPending").textContent  = bookings.filter(b=>b.status==="pending").length;
+  document.getElementById("countApproved").textContent = bookings.filter(b=>b.status==="approved").length;
+  document.getElementById("countCancelled").textContent= bookings.filter(b=>b.status==="cancelled"||b.status==="rejected").length;
+
+  const el = document.getElementById("allBookingsPublicList");
+  if(!bookingsLoaded && !bookings.length){
+    el.innerHTML=`<div class="card"><div class="empty-state"><div class="empty-icon">&#128279;</div><p>Connect Google Sheets to see bookings across all devices.<br><small>Go to Admin → Settings → paste your Script URL.</small></p></div></div>`;
+    return;
+  }
+  if(!filtered.length){
+    el.innerHTML=`<div class="card"><div class="empty-state"><div class="empty-icon">&#128197;</div><p>No bookings match your filters</p></div></div>`;
+    return;
+  }
+
+  el.innerHTML = filtered.map(b=>{
+    const badgeCls = b.status==="approved"?"badge-approved":b.status==="rejected"||b.status==="cancelled"?"badge-cancelled":"badge-pending";
+    const statusLabel = b.status.charAt(0).toUpperCase()+b.status.slice(1);
+    const appTag = `<span class="tag tag-${b.appliance.toLowerCase()}">${b.appliance}</span>`;
+    return`<div class="card" style="padding:16px;margin-bottom:10px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">
+        <div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:3px">${appTag} ${b.memberName}</div>
+          <div style="font-size:11px;color:#aaa;font-family:var(--mono)">${b.id}</div>
+        </div>
+        <span class="booking-badge ${badgeCls}" style="flex-shrink:0">${statusLabel}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:12px;color:#666;line-height:1.8">
+        <div><span style="color:#aaa">From</span> ${fmtDate(b.startDate)}</div>
+        <div><span style="color:#aaa">To</span> ${fmtDate(b.endDate)}</div>
+        <div><span style="color:#aaa">Time</span> ${b.startTime}–${b.endTime}</div>
+        <div><span style="color:#aaa">Days</span> ${b.numDays}</div>
+      </div>
+      <div style="margin-top:8px;font-size:12px;color:#888;border-top:1px solid var(--grey-lt);padding-top:8px">
+        <span style="color:#aaa">Purpose: </span>${b.purpose}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ════════════════════════════════════════════════════════════════════
+// ADMIN PANEL
+// ════════════════════════════════════════════════════════════════════
+function adminPin(k){
+  if(k==="c"){ adminPinBuf=""; updateAdminDots(); return; }
+  if(k==="del"){ adminPinBuf=adminPinBuf.slice(0,-1); updateAdminDots(); return; }
+  if(adminPinBuf.length>=4) return;
+  adminPinBuf+=k; updateAdminDots();
+  if(adminPinBuf.length===4){
+    setTimeout(()=>{
+      if(adminPinBuf===ADMIN_PIN){
+        adminUnlocked=true;
+        document.getElementById("adminPinScreen").classList.add("hidden");
+        document.getElementById("adminPanel").classList.remove("hidden");
+        loadAllBookings();
+      } else {
+        for(let i=0;i<4;i++){const d=document.getElementById("apd"+i);d.classList.remove("filled");d.classList.add("err");}
+        document.getElementById("adminPinErr").textContent="Incorrect PIN.";
+        setTimeout(()=>{adminPinBuf="";document.querySelectorAll(".pin-dot").forEach(d=>d.classList.remove("err"));updateAdminDots();},900);
+      }
+    },120);
+  }
+}
+
+function updateAdminDots(){
+  for(let i=0;i<4;i++){const d=document.getElementById("apd"+i);d.classList.remove("err");d.classList.toggle("filled",i<adminPinBuf.length);}
+}
+
+function lockAdmin(){
+  adminUnlocked=false; adminPinBuf=""; updateAdminDots();
+  document.getElementById("adminPinScreen").classList.remove("hidden");
+  document.getElementById("adminPanel").classList.add("hidden");
+  document.getElementById("adminPinErr").textContent="";
+}
+
+function loadAllBookings(){
+  // Refresh from Sheets first, then render
+  fetchBookingsFromSheets().then(()=>{
+    const pending   = bookings.filter(b=>b.status==="pending");
+    const allSorted = [...bookings].sort((a,b)=>b.submittedAt.localeCompare(a.submittedAt));
+    document.getElementById("pendingCount").textContent = pending.length;
+    document.getElementById("pendingList").innerHTML = pending.length
+      ? pending.map(b=>bookingAdminCard(b,true)).join("")
+      : `<div class="empty-state"><div class="empty-icon">&#9989;</div><p>No pending bookings</p></div>`;
+    document.getElementById("allBookingsList").innerHTML = allSorted.length
+      ? allSorted.map(b=>bookingAdminCard(b,false)).join("")
+      : `<div class="empty-state"><div class="empty-icon">&#128197;</div><p>No bookings yet</p></div>`;
+  });
+}
+
+function bookingAdminCard(b, showActions){
+  const badgeCls = b.status==="approved"?"badge-approved":b.status==="rejected"||b.status==="cancelled"?"badge-cancelled":"badge-pending";
+  const statusLabel = b.status.charAt(0).toUpperCase()+b.status.slice(1);
+  const appTag = `<span class="tag tag-${b.appliance.toLowerCase()}">${b.appliance}</span>`;
+  const actions = showActions?`
+    <div class="booking-actions">
+      <button class="btn-approve" onclick="updateBookingStatus('${b.id}','approved')">&#10003; Approve</button>
+      <button class="btn-reject"  onclick="updateBookingStatus('${b.id}','rejected')">&#10005; Reject</button>
+    </div>`:"";
+  return`<div class="booking-item" id="bk-${b.id}">
+    <span class="booking-badge ${badgeCls}">${statusLabel}</span>
+    <div class="booking-info">
+      <div class="booking-title">${appTag} ${b.memberName}</div>
+      <div class="booking-meta">
+        ${b.memberEmail} &bull; ${b.memberPhone}<br>
+        ${fmtDate(b.startDate)} – ${fmtDate(b.endDate)} &bull; ${b.startTime}–${b.endTime} &bull; ${b.numDays} day(s)<br>
+        <em>${b.purpose}</em>
+      </div>
+      ${actions}
+    </div>
+  </div>`;
+}
+
+async function updateBookingStatus(id, status){
+  const btn = document.querySelector(`#bk-${id} .btn-${status==="approved"?"approve":"reject"}`);
+  if(btn){ btn.disabled=true; btn.textContent="Saving..."; }
+
+  const bk = bookings.find(b=>b.id===id);
+  if(bk){ bk.status=status; bk.updatedAt=new Date().toISOString(); }
+
+  if(SCRIPT_URL){
+    await postToSheets({ type:"update_booking", id, status, booking:bk, adminEmail:ADMIN_EMAIL });
+  }
+
+  await fetchBookingsFromSheets();
+  loadAllBookings();
+  renderCalendar();
+  renderAllBookings();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// SETTINGS — persistent to localStorage
+// ════════════════════════════════════════════════════════════════════
+function saveScriptUrl(){
+  const v = document.getElementById("scriptUrlInput").value.trim();
+  if(!v) return;
+  SCRIPT_URL=v;
+  localStorage.setItem("pcfb_book_url",v);
+  document.getElementById("setupBanner").classList.add("hidden");
+  document.getElementById("scriptUrlAdmin").value=v;
+  fetchBookingsFromSheets();
+}
+
+function saveScriptUrlAdmin(){
+  const v = document.getElementById("scriptUrlAdmin").value.trim();
+  if(!v) return;
+  SCRIPT_URL=v;
+  localStorage.setItem("pcfb_book_url",v);
+  document.getElementById("setupBanner").classList.add("hidden");
+  const m=document.getElementById("scriptSaveMsg");
+  m.style.color="var(--green)"; m.textContent="✓ Saved — loading bookings...";
+  setTimeout(()=>m.textContent="",3000);
+  fetchBookingsFromSheets();
+}
+
+function saveAdminEmail(){
+  const v = document.getElementById("adminEmail").value.trim();
+  if(!v) return;
+  ADMIN_EMAIL=v;
+  localStorage.setItem("pcfb_book_admin_email",v);
+  const m=document.getElementById("adminEmailMsg");
+  m.style.color="var(--green)"; m.textContent="✓ Saved";
+  setTimeout(()=>m.textContent="",2500);
+}
+
+function changeAdminPin(){
+  const v=document.getElementById("newAdminPin").value.trim();
+  const m=document.getElementById("pinChangeMsg");
+  if(!/^\d{4}$/.test(v)){m.style.color="var(--red)";m.textContent="Must be exactly 4 digits.";return;}
+  ADMIN_PIN=v;
+  localStorage.setItem("pcfb_book_pin",v);
+  m.style.color="var(--green)"; m.textContent="✓ PIN updated.";
+  document.getElementById("newAdminPin").value="";
+  setTimeout(()=>m.textContent="",2500);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════════════
+async function postToSheets(payload){
+  if(!SCRIPT_URL) return false;
+  try{
+    await fetch(SCRIPT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    return true;
+  }catch(e){ return false; }
+}
+
+function fmtDate(iso){
+  if(!iso) return "";
+  const [y,m,d]=iso.split("-");
+  const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+}
+
+function showErr(el,msg){ el.textContent=msg; el.classList.remove("hidden"); setTimeout(()=>el.classList.add("hidden"),5000); }
+
+init();
+</script>
+</body>
+</html>
