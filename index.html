@@ -191,11 +191,11 @@ textarea{resize:vertical;min-height:80px}
 
   <!-- Setup banner -->
   <div class="setup-banner hidden" id="setupBanner">
-    <strong>Connect to Google Sheets to enable bookings &amp; email</strong>
-    Paste your Google Apps Script Web App URL below.
+    <strong>Connect to Google Sheets</strong>
+    Paste your script URL below to connect this browser. For all devices permanently, paste the URL into the <code style="font-family:monospace;background:rgba(0,0,0,.08);padding:1px 5px;border-radius:3px">HARDCODED_SCRIPT_URL</code> line in the HTML file and re-upload to GitHub Pages.
     <div class="config-row">
-      <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/AKfycbxEPxt3r3ZtSpPPVLGYUc_6X11e87yp6lprQvBX7IXnAKwM34_SmgWLrjlBOO5i5snz/exec"/>
-      <button onclick="saveScriptUrl()">Save</button>
+      <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/..."/>
+      <button onclick="saveScriptUrl()">Save for this browser</button>
     </div>
   </div>
 
@@ -445,8 +445,11 @@ textarea{resize:vertical;min-height:80px}
         <div class="card-title">Settings</div>
         <div class="field">
           <label>Google Apps Script URL</label>
-          <input type="text" id="scriptUrlAdmin" placeholder="https://script.google.com/macros/s/AKfycbxEPxt3r3ZtSpPPVLGYUc_6X11e87yp6lprQvBX7IXnAKwM34_SmgWLrjlBOO5i5snz/exec"/>
-          <button onclick="saveScriptUrlAdmin()" style="margin-top:8px;padding:9px 18px;background:var(--red);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Save URL</button>
+          <input type="text" id="scriptUrlAdmin" placeholder="https://script.google.com/macros/s/..."/>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <button onclick="saveScriptUrlAdmin()" style="padding:9px 18px;background:var(--red);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Save URL</button>
+            <button onclick="testConnection()" style="padding:9px 18px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Test Connection</button>
+          </div>
           <div id="scriptSaveMsg" style="font-size:12px;margin-top:6px;min-height:14px"></div>
         </div>
         <hr class="divider"/>
@@ -480,9 +483,18 @@ textarea{resize:vertical;min-height:80px}
 // localStorage: ONLY for script URL, admin email, admin PIN
 // ════════════════════════════════════════════════════════════════════
 
-let SCRIPT_URL  = localStorage.getItem("pcfb_book_url")          || "";
-let ADMIN_PIN   = localStorage.getItem("pcfb_book_pin")          || "1234";
-let ADMIN_EMAIL = localStorage.getItem("pcfb_book_admin_email")  || "";
+// ══════════════════════════════════════════════════════════
+// ADMIN: Paste your script URL below to connect this browser. For all devices permanently, paste the URL into the <code style="font-family:monospace;background:rgba(0,0,0,.08);padding:1px 5px;border-radius:3px">HARDCODED_SCRIPT_URL</code> line in the HTML file and re-upload to GitHub Pages.
+// This is the ONLY place you need to set it.
+// After pasting, save the file and re-upload to GitHub Pages.
+// Every browser will then work automatically — no setup needed.
+// ══════════════════════════════════════════════════════════
+const HARDCODED_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwefOJfm1xQDxvZ0Smp7YHp3ePwRJylvxExHLLCcxcy8jXzz4qEfqW1sqYfsTZAUWJm/exec"; // ← PASTE YOUR URL HERE
+
+// Runtime URL: hardcoded value takes priority over anything saved in browser
+let SCRIPT_URL  = HARDCODED_SCRIPT_URL || localStorage.getItem("pcfb_book_url") || "";
+let ADMIN_PIN   = localStorage.getItem("pcfb_book_pin")         || "1234";
+let ADMIN_EMAIL = localStorage.getItem("pcfb_book_admin_email") || "";
 
 let bookings      = [];   // always loaded fresh from Sheets
 let bookingsLoaded= false;
@@ -529,22 +541,32 @@ async function fetchBookingsFromSheets(){
   setLoadingState(true);
   if(!SCRIPT_URL){
     setLoadingState(false);
+    showGlobalMsg("No script URL configured. See Admin → Settings to connect Google Sheets.", "info");
     return;
   }
   try{
     const url = SCRIPT_URL + "?type=get_all_bookings&ts=" + Date.now();
     const resp = await fetch(url);
-    const data = await resp.json();
+    const text = await resp.text(); // read as text first to catch HTML redirect responses
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch(parseErr) {
+      // Got HTML instead of JSON — usually means deployment access is wrong
+      console.warn("Non-JSON response from Apps Script:", text.substring(0, 200));
+      showGlobalMsg("⚠️ Google Sheets returned an unexpected response. Make sure your script is deployed with 'Who has access: Anyone' and redeploy as a new version.", "error");
+      setLoadingState(false);
+      return;
+    }
     if(data.bookings && Array.isArray(data.bookings)){
       bookings = data.bookings;
       bookingsLoaded = true;
     }
   }catch(e){
     console.warn("Could not load bookings from Sheets:", e);
-    showGlobalMsg("Could not connect to Google Sheets. Check the URL in Admin settings.", "error");
+    showGlobalMsg("Could not reach Google Sheets. Check your internet connection and script URL.", "error");
   }
   setLoadingState(false);
-  // Refresh active views with fresh data
   renderAllBookings();
   renderCalendar();
   if(adminUnlocked) renderAdminBookings();
@@ -1103,8 +1125,9 @@ function saveScriptUrlAdmin(){
   localStorage.setItem("pcfb_book_url",v);
   document.getElementById("setupBanner").classList.add("hidden");
   const m=document.getElementById("scriptSaveMsg");
-  m.style.color="var(--green)"; m.textContent="✓ Saved — loading bookings...";
-  setTimeout(()=>m.textContent="",3000);
+  m.style.color="var(--green)";
+  m.innerHTML='✓ Saved for this browser. <strong>For all devices:</strong> paste the URL into the HARDCODED_SCRIPT_URL line in pcfb_booking.html and re-upload to GitHub Pages.';
+  setTimeout(()=>m.textContent="",8000);
   fetchBookingsFromSheets();
 }
 
@@ -1135,12 +1158,21 @@ function changeAdminPin(){
 async function postToSheets(payload){
   if(!SCRIPT_URL) return false;
   try{
-    // Use GET with encoded payload — avoids CORS preflight issues with Apps Script
     const encoded = encodeURIComponent(JSON.stringify(payload));
     const url = SCRIPT_URL + "?action=post&data=" + encoded + "&ts=" + Date.now();
     const resp = await fetch(url);
-    const result = await resp.json();
-    return result.status === "success";
+    const text = await resp.text();
+    try {
+      const result = JSON.parse(text);
+      return result.status === "success";
+    } catch(e) {
+      console.warn("postToSheets non-JSON response:", text.substring(0, 200));
+      // If we got a redirect to login, the script access is set to 'Me only'
+      if(text.includes("accounts.google.com") || text.includes("signin")) {
+        showGlobalMsg("⚠️ Script access error: redeploy your Apps Script with 'Who has access: Anyone'.", "error");
+      }
+      return false;
+    }
   }catch(e){
     console.warn("postToSheets error:", e);
     return false;
@@ -1155,6 +1187,38 @@ function fmtDate(iso){
 }
 
 function showErr(el,msg){ el.textContent=msg; el.classList.remove("hidden"); setTimeout(()=>el.classList.add("hidden"),5000); }
+
+async function testConnection(){
+  const m = document.getElementById("scriptSaveMsg");
+  if(!SCRIPT_URL){ m.style.color="var(--red)"; m.textContent="No URL saved. Paste your script URL first."; return; }
+  m.style.color="var(--blue)"; m.textContent="Testing connection...";
+  try{
+    const url = SCRIPT_URL + "?type=get_all_bookings&ts=" + Date.now();
+    const resp = await fetch(url);
+    const text = await resp.text();
+    if(text.includes("accounts.google.com") || text.includes("signin")){
+      m.style.color="var(--red)";
+      m.innerHTML='❌ <strong>Access denied.</strong> Redeploy the script: Deploy → Manage deployments → Edit → set "Who has access" to <strong>Anyone</strong> → New version → Deploy.';
+    } else {
+      try {
+        const data = JSON.parse(text);
+        if(data.bookings !== undefined){
+          m.style.color="var(--green)";
+          m.textContent="✅ Connected! Found " + data.bookings.length + " booking(s). All devices will now see live data.";
+          bookings = data.bookings; bookingsLoaded = true;
+          renderAdminBookings(); renderAllBookings(); renderCalendar();
+        } else {
+          m.style.color="var(--amber)"; m.textContent="⚠️ Connected but unexpected response: " + text.substring(0,80);
+        }
+      } catch(e) {
+        m.style.color="var(--red)"; m.textContent="❌ Got non-JSON response. Check the script URL is correct.";
+      }
+    }
+  } catch(e) {
+    m.style.color="var(--red)"; m.textContent="❌ Could not reach the URL: " + e.message;
+  }
+  setTimeout(()=>m.textContent="", 12000);
+}
 
 init();
 </script>
