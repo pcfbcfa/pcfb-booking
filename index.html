@@ -156,15 +156,30 @@ textarea{resize:vertical;min-height:80px}
 .confirm-cancel p{margin-bottom:10px;font-weight:500}
 .confirm-cancel-btns{display:flex;gap:8px}
 .confirm-cancel-btns button{padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);border:none}
+
+.admin-comment-box{margin-top:10px}
+.admin-comment-box textarea{width:100%;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:13px;font-family:var(--font);resize:vertical;min-height:60px;outline:none;transition:border-color .2s}
+.admin-comment-box textarea:focus{border-color:var(--red)}
+.admin-comment-box label{font-size:12px;font-weight:600;color:var(--grey-md);display:block;margin-bottom:4px}
+.admin-comment-row{display:flex;gap:6px;margin-top:8px}
+.booking-comment{margin-top:8px;padding:8px 10px;background:#f8f9fa;border-left:3px solid #ddd;border-radius:0 6px 6px 0;font-size:12px;color:#555;font-style:italic}
+.booking-comment.approved-comment{border-left-color:var(--green)}
+.booking-comment.rejected-comment{border-left-color:var(--red)}
+
+.btn-override{padding:6px 13px;background:#fff;color:var(--grey-md);border:1.5px solid #ddd;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s}
+.btn-override:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt)}
+.btn-cancel-admin{padding:6px 13px;background:#fff;color:#888;border:1.5px solid #ddd;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s}
+.btn-cancel-admin:hover{border-color:var(--red);color:var(--red);background:var(--red-lt)}
+.override-note{font-size:11px;color:#aaa;margin-top:6px;font-style:italic}
 </style>
 </head>
 <body>
 
 <div class="app-header">
   <div class="header-inner">
-    <div class="header-logo">CFA</div>
+    <div class="header-logo">Point Cook CFA</div>
     <div class="header-text">
-      <h1>PCFB Appliance Booking</h1>
+      <h1>Appliance Booking</h1>
       <p>Point Cook CFA</p>
     </div>
   </div>
@@ -187,7 +202,22 @@ textarea{resize:vertical;min-height:80px}
   <div id="loadingBanner" class="hidden" style="background:var(--blue-lt);border:1px solid var(--blue-mid);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--blue);margin-bottom:12px;display:flex;align-items:center;gap:8px">
     <span style="animation:spin 1s linear infinite;display:inline-block">&#8635;</span> Loading bookings from Google Sheets...
   </div>
-  <style>@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>
+  <style>@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.admin-comment-box{margin-top:10px}
+.admin-comment-box textarea{width:100%;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:13px;font-family:var(--font);resize:vertical;min-height:60px;outline:none;transition:border-color .2s}
+.admin-comment-box textarea:focus{border-color:var(--red)}
+.admin-comment-box label{font-size:12px;font-weight:600;color:var(--grey-md);display:block;margin-bottom:4px}
+.admin-comment-row{display:flex;gap:6px;margin-top:8px}
+.booking-comment{margin-top:8px;padding:8px 10px;background:#f8f9fa;border-left:3px solid #ddd;border-radius:0 6px 6px 0;font-size:12px;color:#555;font-style:italic}
+.booking-comment.approved-comment{border-left-color:var(--green)}
+.booking-comment.rejected-comment{border-left-color:var(--red)}
+
+.btn-override{padding:6px 13px;background:#fff;color:var(--grey-md);border:1.5px solid #ddd;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s}
+.btn-override:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-lt)}
+.btn-cancel-admin{padding:6px 13px;background:#fff;color:#888;border:1.5px solid #ddd;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s}
+.btn-cancel-admin:hover{border-color:var(--red);color:var(--red);background:var(--red-lt)}
+.override-note{font-size:11px;color:#aaa;margin-top:6px;font-style:italic}
+</style>
 
   <!-- Setup banner -->
   <div class="setup-banner hidden" id="setupBanner">
@@ -641,25 +671,62 @@ function calcEndDate(){
 
 function onDateChange(){ calcEndDate(); }
 
+// Parse HH:MM time string to minutes since midnight for comparison
+function timeToMins(t){
+  if(!t) return 0;
+  // Strip any date garbage Google Sheets may add — just take HH:MM
+  const clean = t.toString().replace(/.*?(\d{1,2}:\d{2}).*/,'$1');
+  const parts = clean.split(":");
+  return parseInt(parts[0]||0)*60 + parseInt(parts[1]||0);
+}
+
+// Format time safely — strip any 1899 date prefix Sheets may add
+function fmtTime(t){
+  if(!t) return "";
+  const clean = t.toString().replace(/.*?(\d{1,2}:\d{2}).*/,'$1');
+  return clean;
+}
+
+function datesOverlap(aStart,aEnd,bStart,bEnd){
+  return aStart<=bEnd && aEnd>=bStart;
+}
+
+function timesOverlap(aStartT,aEndT,bStartT,bEndT){
+  return timeToMins(aStartT) < timeToMins(bEndT) &&
+         timeToMins(aEndT)   > timeToMins(bStartT);
+}
+
 function checkAvailability(){
   if(!selectedAppliance) return;
-  const start = document.getElementById("startDate").value;
-  const end   = document.getElementById("endDate").value;
+  const start  = document.getElementById("startDate").value;
+  const end    = document.getElementById("endDate").value;
+  const sTime  = document.getElementById("startTime").value;
+  const eTime  = document.getElementById("endTime").value;
   if(!start||!end) return;
-  const conflicts = bookings.filter(b=>
-    b.appliance===selectedAppliance &&
-    b.status!=="rejected" && b.status!=="cancelled" &&
-    b.startDate<=end && b.endDate>=start
-  );
+
+  const conflicts = bookings.filter(b=>{
+    if(b.appliance!==selectedAppliance) return false;
+    if(b.status==="rejected"||b.status==="cancelled") return false;
+    // Date ranges must overlap
+    if(!datesOverlap(start,end,b.startDate,b.endDate)) return false;
+    // If same-day booking, also check time overlap
+    if(start===end && b.startDate===b.endDate && start===b.startDate){
+      return timesOverlap(sTime,eTime,b.startTime,b.endTime);
+    }
+    return true;
+  });
+
   const el = document.getElementById("availCheck");
   if(conflicts.length){
-    const names = conflicts.map(b=>`${b.memberName} (${fmtDate(b.startDate)}–${fmtDate(b.endDate)}, ${b.startTime}–${b.endTime})`).join("; ");
+    const names = conflicts.map(b=>
+      `${b.memberName} — ${fmtDate(b.startDate)}${b.startDate!==b.endDate?'–'+fmtDate(b.endDate):''} ${fmtTime(b.startTime)}–${fmtTime(b.endTime)}`
+    ).join("<br>&nbsp;&nbsp;&nbsp;");
     el.className="alert warning";
-    el.innerHTML=`&#9888; <strong>Conflict detected</strong> — ${conflicts.length} existing booking(s) overlap:<br><small>${names}</small><br>You can still submit; admin will confirm.`;
+    el.innerHTML=`&#9888; <strong>Conflict — ${conflicts.length} booking(s) overlap this slot:</strong><br><small>&nbsp;&nbsp;&nbsp;${names}</small><br><small>You can still submit; the admin will review.</small>`;
     el.classList.remove("hidden");
   } else {
     el.className="alert success";
-    el.innerHTML=`&#9989; <strong>${selectedAppliance} appears available</strong> for your selected dates.`;
+    el.innerHTML=`&#9989; <strong>${selectedAppliance} is available</strong> for your selected dates and times.`;
     el.classList.remove("hidden");
   }
 }
@@ -849,7 +916,7 @@ function selectCalDay(day){
       <div class="booking-info">
         <div class="booking-title">${b.memberName}${overlapTag}</div>
         <div class="booking-meta">
-          <strong>Time:</strong> ${b.startTime} – ${b.endTime}<br>
+          <strong>Time:</strong> ${fmtTime(b.startTime)} – ${fmtTime(b.endTime)}<br>
           <strong>Period:</strong> ${fmtDate(b.startDate)} – ${fmtDate(b.endDate)} (${b.numDays} day(s))<br>
           <strong>Purpose:</strong> ${b.purpose}<br>
           <strong>Contact:</strong> ${b.memberEmail} &bull; ${b.memberPhone}
@@ -914,7 +981,7 @@ function renderMyBookings(myBookings){
       </div>
       <div style="font-size:12px;color:#666;line-height:1.9">
         <strong>Dates:</strong> ${fmtDate(b.startDate)} – ${fmtDate(b.endDate)} (${b.numDays} day(s))<br>
-        <strong>Time:</strong> ${b.startTime} – ${b.endTime}<br>
+        <strong>Time:</strong> ${fmtTime(b.startTime)} – ${fmtTime(b.endTime)}<br>
         <strong>Purpose:</strong> ${b.purpose}
       </div>
       ${canCancel?`<div style="margin-top:12px;text-align:right"><button class="btn-cancel" onclick="showCancelConfirm('${b.id}')">Cancel booking</button></div>`:""}
@@ -1006,7 +1073,7 @@ function renderAllBookings(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:12px;color:#666;line-height:1.8">
         <div><span style="color:#aaa">From</span> ${fmtDate(b.startDate)}</div>
         <div><span style="color:#aaa">To</span> ${fmtDate(b.endDate)}</div>
-        <div><span style="color:#aaa">Time</span> ${b.startTime}–${b.endTime}</div>
+        <div><span style="color:#aaa">Time</span> ${fmtTime(b.startTime)}–${fmtTime(b.endTime)}</div>
         <div><span style="color:#aaa">Days</span> ${b.numDays}</div>
       </div>
       <div style="margin-top:8px;font-size:12px;color:#888;border-top:1px solid var(--grey-lt);padding-top:8px">
@@ -1056,10 +1123,11 @@ function renderAdminBookings(){
   const allSorted = [...bookings].sort((a,b)=>b.submittedAt.localeCompare(a.submittedAt));
   document.getElementById("pendingCount").textContent = pending.length;
   document.getElementById("pendingList").innerHTML = pending.length
-    ? pending.map(b=>bookingAdminCard(b,true)).join("")
+    ? pending.map(b=>bookingAdminCard(b)).join("")
     : `<div class="empty-state"><div class="empty-icon">&#9989;</div><p>No pending bookings</p></div>`;
+  // All bookings section always shows actions so admin can override any status
   document.getElementById("allBookingsList").innerHTML = allSorted.length
-    ? allSorted.map(b=>bookingAdminCard(b,false)).join("")
+    ? allSorted.map(b=>bookingAdminCard(b)).join("")
     : `<div class="empty-state"><div class="empty-icon">&#128197;</div><p>No bookings yet</p></div>`;
 }
 
@@ -1069,35 +1137,89 @@ async function loadAllBookings(){
   renderAdminBookings(); // re-render with fresh data
 }
 
-function bookingAdminCard(b, showActions){
-  const badgeCls = b.status==="approved"?"badge-approved":b.status==="rejected"||b.status==="cancelled"?"badge-cancelled":"badge-pending";
+function bookingAdminCard(b){
+  const badgeCls    = b.status==="approved"?"badge-approved"
+                    : b.status==="rejected"||b.status==="cancelled"?"badge-cancelled"
+                    : "badge-pending";
   const statusLabel = b.status.charAt(0).toUpperCase()+b.status.slice(1);
-  const appTag = `<span class="tag tag-${b.appliance.toLowerCase()}">${b.appliance}</span>`;
-  const actions = showActions?`
-    <div class="booking-actions">
-      <button class="btn-approve" onclick="updateBookingStatus('${b.id}','approved')">&#10003; Approve</button>
-      <button class="btn-reject"  onclick="updateBookingStatus('${b.id}','rejected')">&#10005; Reject</button>
-    </div>`:"";
+  const appTag      = `<span class="tag tag-${b.appliance.toLowerCase()}">${b.appliance}</span>`;
+
+  // Existing admin comment
+  const commentHtml = b.adminComment
+    ? `<div class="booking-comment ${b.status}-comment"><strong>Admin note:</strong> ${b.adminComment}</div>`
+    : "";
+
+  // Comment field — always shown for admin actions
+  const commentField = `
+    <div class="admin-comment-box">
+      <label>Comment to member <span style="font-weight:400;color:#aaa">(optional — included in email)</span></label>
+      <textarea id="comment-${b.id}" placeholder="e.g. Please collect keys from Station 1...">${b.adminComment||""}</textarea>
+    </div>`;
+
+  // Action buttons — depend on current status
+  let actions = "";
+  if(b.status === "pending"){
+    actions = `
+      ${commentField}
+      <div class="admin-comment-row">
+        <button class="btn-approve"      onclick="updateBookingStatus('${b.id}','approved')">&#10003; Approve</button>
+        <button class="btn-reject"       onclick="updateBookingStatus('${b.id}','rejected')">&#10005; Reject</button>
+      </div>`;
+  } else if(b.status === "approved"){
+    actions = `
+      ${commentField}
+      <div class="admin-comment-row">
+        <button class="btn-cancel-admin" onclick="updateBookingStatus('${b.id}','rejected')">&#10005; Reject booking</button>
+        <button class="btn-cancel-admin" onclick="updateBookingStatus('${b.id}','cancelled')">&#8856; Cancel booking</button>
+      </div>
+      <div class="override-note">This booking is approved — use these buttons to reverse the decision.</div>`;
+  } else if(b.status === "rejected"){
+    actions = `
+      ${commentField}
+      <div class="admin-comment-row">
+        <button class="btn-approve"      onclick="updateBookingStatus('${b.id}','approved')">&#10003; Approve instead</button>
+        <button class="btn-cancel-admin" onclick="updateBookingStatus('${b.id}','cancelled')">&#8856; Cancel</button>
+      </div>
+      <div class="override-note">This booking was rejected — you can override and approve it.</div>`;
+  } else if(b.status === "cancelled"){
+    actions = `
+      ${commentField}
+      <div class="admin-comment-row">
+        <button class="btn-approve"      onclick="updateBookingStatus('${b.id}','approved')">&#10003; Re-approve</button>
+        <button class="btn-reject"       onclick="updateBookingStatus('${b.id}','rejected')">&#10005; Reject</button>
+      </div>
+      <div class="override-note">This booking was cancelled — you can reinstate it.</div>`;
+  }
+
   return`<div class="booking-item" id="bk-${b.id}">
     <span class="booking-badge ${badgeCls}">${statusLabel}</span>
     <div class="booking-info">
       <div class="booking-title">${appTag} ${b.memberName}</div>
       <div class="booking-meta">
         ${b.memberEmail} &bull; ${b.memberPhone}<br>
-        ${fmtDate(b.startDate)} – ${fmtDate(b.endDate)} &bull; ${b.startTime}–${b.endTime} &bull; ${b.numDays} day(s)<br>
+        ${fmtDate(b.startDate)} – ${fmtDate(b.endDate)} &bull; ${fmtTime(b.startTime)}–${fmtTime(b.endTime)} &bull; ${b.numDays} day(s)<br>
         <em>${b.purpose}</em>
       </div>
+      ${commentHtml}
       ${actions}
     </div>
   </div>`;
 }
 
 async function updateBookingStatus(id, status){
-  const btn = document.querySelector(`#bk-${id} .btn-${status==="approved"?"approve":"reject"}`);
-  if(btn){ btn.disabled=true; btn.textContent="Saving..."; }
+  // Disable all action buttons in this card while saving
+  const card = document.getElementById("bk-"+id);
+  if(card) card.querySelectorAll("button").forEach(b=>{ b.disabled=true; });
+  const savingEl = card ? card.querySelector(".admin-comment-row") : null;
+  if(savingEl) savingEl.insertAdjacentHTML("beforeend","<span style='font-size:12px;color:#888;margin-left:8px'>Saving...</span>");
+
+  // Read optional admin comment
+  const commentEl = document.getElementById("comment-"+id);
+  const adminComment = commentEl ? commentEl.value.trim() : "";
 
   // Optimistically update local state first — instant feedback
   const bk = bookings.find(b=>b.id===id);
+  if(bk && adminComment) bk.adminComment = adminComment;
   if(bk){ bk.status=status; bk.updatedAt=new Date().toISOString(); }
 
   // Re-render immediately so admin sees the change without waiting
@@ -1107,7 +1229,7 @@ async function updateBookingStatus(id, status){
 
   // Then persist to Sheets in the background
   if(SCRIPT_URL){
-    const saved = await postToSheets({ type:"update_booking", id, status, booking:bk, adminEmail:ADMIN_EMAIL });
+    const saved = await postToSheets({ type:"update_booking", id, status, booking:bk, adminEmail:ADMIN_EMAIL, adminComment });
     if(!saved) showGlobalMsg("Warning: status updated locally but could not sync to Google Sheets.", "warning");
   }
 }
