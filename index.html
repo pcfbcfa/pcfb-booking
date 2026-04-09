@@ -174,7 +174,7 @@ textarea{resize:vertical;min-height:80px}
   <div class="nav-inner">
     <div class="nav-tab active" id="navBook"     onclick="showTab('book')">Book</div>
     <div class="nav-tab"        id="navAvail"    onclick="showTab('avail')">Availability</div>
-    <div class="nav-tab"        id="navMyBook"   onclick="showTab('mybook')">My Bookings</div>
+    <div class="nav-tab"        id="navMybook"   onclick="showTab('mybook')">My Bookings</div>
     <div class="nav-tab"        id="navAllbook"  onclick="showTab('allbook')">All Bookings</div>
     <div class="nav-tab"        id="navAdmin"    onclick="showTab('admin')">Admin</div>
   </div>
@@ -600,7 +600,14 @@ function showTab(tab){
 }
 
 function cap(s){
-  const m = {allbook:"Allbook", mybook:"Mybook"};
+  // Maps tab key -> exact suffix used in id="tabXxx" and id="navXxx"
+  const m = {
+    book:    "Book",
+    avail:   "Avail",
+    mybook:  "Mybook",
+    allbook: "Allbook",
+    admin:   "Admin"
+  };
   return m[s] || (s.charAt(0).toUpperCase()+s.slice(1));
 }
 
