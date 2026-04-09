@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>PCFB — Appliance Booking</title>
+<title>Point Cook CFA — PCFB Appliance Booking</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 :root{
@@ -164,8 +164,8 @@ textarea{resize:vertical;min-height:80px}
   <div class="header-inner">
     <div class="header-logo">CFA</div>
     <div class="header-text">
-      <h1>Appliance Booking</h1>
-      <p>Princes Country Fire Brigade</p>
+      <h1>PCFB Appliance Booking</h1>
+      <p>Point Cook CFA</p>
     </div>
   </div>
 </div>
@@ -194,7 +194,7 @@ textarea{resize:vertical;min-height:80px}
     <strong>Connect to Google Sheets to enable bookings &amp; email</strong>
     Paste your Google Apps Script Web App URL below.
     <div class="config-row">
-      <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/..."/>
+      <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/AKfycbxEPxt3r3ZtSpPPVLGYUc_6X11e87yp6lprQvBX7IXnAKwM34_SmgWLrjlBOO5i5snz/exec"/>
       <button onclick="saveScriptUrl()">Save</button>
     </div>
   </div>
@@ -445,7 +445,7 @@ textarea{resize:vertical;min-height:80px}
         <div class="card-title">Settings</div>
         <div class="field">
           <label>Google Apps Script URL</label>
-          <input type="text" id="scriptUrlAdmin" placeholder="https://script.google.com/macros/s/..."/>
+          <input type="text" id="scriptUrlAdmin" placeholder="https://script.google.com/macros/s/AKfycbxEPxt3r3ZtSpPPVLGYUc_6X11e87yp6lprQvBX7IXnAKwM34_SmgWLrjlBOO5i5snz/exec"/>
           <button onclick="saveScriptUrlAdmin()" style="margin-top:8px;padding:9px 18px;background:var(--red);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Save URL</button>
           <div id="scriptSaveMsg" style="font-size:12px;margin-top:6px;min-height:14px"></div>
         </div>
@@ -544,10 +544,10 @@ async function fetchBookingsFromSheets(){
     showGlobalMsg("Could not connect to Google Sheets. Check the URL in Admin settings.", "error");
   }
   setLoadingState(false);
-  // Refresh any active view
+  // Refresh active views with fresh data
   renderAllBookings();
   renderCalendar();
-  if(adminUnlocked) loadAllBookings();
+  if(adminUnlocked) renderAdminBookings();
 }
 
 function setLoadingState(loading){
@@ -574,7 +574,7 @@ function showTab(tab){
   });
   if(tab==="avail")   { renderCalendar(); }
   if(tab==="allbook") { renderAllBookings(); }
-  if(tab==="admin" && adminUnlocked) { loadAllBookings(); }
+  if(tab==="admin" && adminUnlocked) { renderAdminBookings(); fetchBookingsFromSheets().then(renderAdminBookings); }
 }
 
 function cap(s){
@@ -914,16 +914,20 @@ async function cancelBooking(id){
   const btn = document.querySelector(`#mybk-${id} .btn-cancel`);
   if(btn){ btn.disabled=true; btn.textContent="Cancelling..."; }
 
+  // Optimistic local update
   const bk = bookings.find(b=>b.id===id);
   if(bk){ bk.status="cancelled"; bk.updatedAt=new Date().toISOString(); }
 
+  // Re-render immediately
+  const myBookings = bookings.filter(b=>b.memberEmail.toLowerCase()===myBookingsEmail);
+  renderMyBookings(myBookings);
+  renderCalendar();
+  renderAllBookings();
+
+  // Persist in background
   if(SCRIPT_URL){
     await postToSheets({ type:"update_booking", id, status:"cancelled", booking:bk, adminEmail:ADMIN_EMAIL });
   }
-
-  // Refresh from Sheets
-  await fetchBookingsFromSheets();
-  lookupBookings();
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -1018,19 +1022,22 @@ function lockAdmin(){
   document.getElementById("adminPinErr").textContent="";
 }
 
-function loadAllBookings(){
-  // Refresh from Sheets first, then render
-  fetchBookingsFromSheets().then(()=>{
-    const pending   = bookings.filter(b=>b.status==="pending");
-    const allSorted = [...bookings].sort((a,b)=>b.submittedAt.localeCompare(a.submittedAt));
-    document.getElementById("pendingCount").textContent = pending.length;
-    document.getElementById("pendingList").innerHTML = pending.length
-      ? pending.map(b=>bookingAdminCard(b,true)).join("")
-      : `<div class="empty-state"><div class="empty-icon">&#9989;</div><p>No pending bookings</p></div>`;
-    document.getElementById("allBookingsList").innerHTML = allSorted.length
-      ? allSorted.map(b=>bookingAdminCard(b,false)).join("")
-      : `<div class="empty-state"><div class="empty-icon">&#128197;</div><p>No bookings yet</p></div>`;
-  });
+function renderAdminBookings(){
+  const pending   = bookings.filter(b=>b.status==="pending");
+  const allSorted = [...bookings].sort((a,b)=>b.submittedAt.localeCompare(a.submittedAt));
+  document.getElementById("pendingCount").textContent = pending.length;
+  document.getElementById("pendingList").innerHTML = pending.length
+    ? pending.map(b=>bookingAdminCard(b,true)).join("")
+    : `<div class="empty-state"><div class="empty-icon">&#9989;</div><p>No pending bookings</p></div>`;
+  document.getElementById("allBookingsList").innerHTML = allSorted.length
+    ? allSorted.map(b=>bookingAdminCard(b,false)).join("")
+    : `<div class="empty-state"><div class="empty-icon">&#128197;</div><p>No bookings yet</p></div>`;
+}
+
+async function loadAllBookings(){
+  renderAdminBookings(); // render immediately from in-memory
+  await fetchBookingsFromSheets(); // then refresh from Sheets
+  renderAdminBookings(); // re-render with fresh data
 }
 
 function bookingAdminCard(b, showActions){
@@ -1060,17 +1067,20 @@ async function updateBookingStatus(id, status){
   const btn = document.querySelector(`#bk-${id} .btn-${status==="approved"?"approve":"reject"}`);
   if(btn){ btn.disabled=true; btn.textContent="Saving..."; }
 
+  // Optimistically update local state first — instant feedback
   const bk = bookings.find(b=>b.id===id);
   if(bk){ bk.status=status; bk.updatedAt=new Date().toISOString(); }
 
-  if(SCRIPT_URL){
-    await postToSheets({ type:"update_booking", id, status, booking:bk, adminEmail:ADMIN_EMAIL });
-  }
-
-  await fetchBookingsFromSheets();
-  loadAllBookings();
+  // Re-render immediately so admin sees the change without waiting
+  renderAdminBookings();
   renderCalendar();
   renderAllBookings();
+
+  // Then persist to Sheets in the background
+  if(SCRIPT_URL){
+    const saved = await postToSheets({ type:"update_booking", id, status, booking:bk, adminEmail:ADMIN_EMAIL });
+    if(!saved) showGlobalMsg("Warning: status updated locally but could not sync to Google Sheets.", "warning");
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -1125,9 +1135,16 @@ function changeAdminPin(){
 async function postToSheets(payload){
   if(!SCRIPT_URL) return false;
   try{
-    await fetch(SCRIPT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-    return true;
-  }catch(e){ return false; }
+    // Use GET with encoded payload — avoids CORS preflight issues with Apps Script
+    const encoded = encodeURIComponent(JSON.stringify(payload));
+    const url = SCRIPT_URL + "?action=post&data=" + encoded + "&ts=" + Date.now();
+    const resp = await fetch(url);
+    const result = await resp.json();
+    return result.status === "success";
+  }catch(e){
+    console.warn("postToSheets error:", e);
+    return false;
+  }
 }
 
 function fmtDate(iso){
