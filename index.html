@@ -910,7 +910,7 @@ async function submitBooking(){
     status: "pending",
     submittedAt: new Date().toISOString(),
     adminEmail: ADMIN_EMAIL,
-    appUrl: window.location.href,
+    appUrl: window.location.origin + window.location.pathname,
   };
 
   const synced = await postToSheets({ type:"new_booking", booking });
