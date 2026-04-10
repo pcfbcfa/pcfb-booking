@@ -519,7 +519,7 @@ textarea{resize:vertical;min-height:80px}
 // After pasting, save the file and re-upload to GitHub Pages.
 // Every browser will then work automatically — no setup needed.
 // ══════════════════════════════════════════════════════════
-const HARDCODED_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwFtTmFOIr8lj_n3SJZ_7wegZGv5cT66Zyp8yWZKFBtdnsVzYlNS3Zv8UJYACZcvxXk/exec"; // ← PASTE YOUR URL HERE
+const HARDCODED_SCRIPT_URL = ""; // ← PASTE YOUR URL HERE
 
 // Runtime URL: hardcoded value takes priority over anything saved in browser
 let SCRIPT_URL  = HARDCODED_SCRIPT_URL || localStorage.getItem("pcfb_book_url") || "";
@@ -560,7 +560,23 @@ async function init(){
   if(ADMIN_EMAIL) document.getElementById("adminEmail").value = ADMIN_EMAIL;
 
   setAvailApp("FCV");
-  showTab("book");
+
+  // Check for deep link: ?booking=BK12345678
+  const urlParams = new URLSearchParams(window.location.search);
+  const deepBookingId = urlParams.get("booking");
+  if (deepBookingId) {
+    // Store it — we'll highlight after bookings load
+    window._deepLinkBookingId = deepBookingId.trim().toUpperCase();
+    // Go to admin tab and show PIN with a hint
+    showTab("admin");
+    const hint = document.getElementById("adminPinErr");
+    if (hint) {
+      hint.style.color = "#1a5276";
+      hint.textContent = "Enter PIN to view booking " + window._deepLinkBookingId;
+    }
+  } else {
+    showTab("book");
+  }
 
   // Load bookings from Sheets on startup
   await fetchBookingsFromSheets();
@@ -600,6 +616,13 @@ async function fetchBookingsFromSheets(){
   renderAllBookings();
   renderCalendar();
   if(adminUnlocked) renderAdminBookings();
+
+  // If opened via deep link and admin is NOT yet unlocked,
+  // switch to All Bookings tab and highlight the booking there
+  if (window._deepLinkBookingId && !adminUnlocked) {
+    showTab("allbook");
+    setTimeout(() => highlightBooking(window._deepLinkBookingId), 400);
+  }
 }
 
 function setLoadingState(loading){
@@ -1099,6 +1122,10 @@ function adminPin(k){
         document.getElementById("adminPinScreen").classList.add("hidden");
         document.getElementById("adminPanel").classList.remove("hidden");
         loadAllBookings();
+        // If opened via deep link, scroll to and highlight that booking
+        if (window._deepLinkBookingId) {
+          setTimeout(() => highlightBooking(window._deepLinkBookingId), 600);
+        }
       } else {
         for(let i=0;i<4;i++){const d=document.getElementById("apd"+i);d.classList.remove("filled");d.classList.add("err");}
         document.getElementById("adminPinErr").textContent="Incorrect PIN.";
@@ -1117,6 +1144,45 @@ function lockAdmin(){
   document.getElementById("adminPinScreen").classList.remove("hidden");
   document.getElementById("adminPanel").classList.add("hidden");
   document.getElementById("adminPinErr").textContent="";
+}
+
+function highlightBooking(id){
+  // Find the booking card by id — cards use id="bk-BKXXXXXXXX"
+  const card = document.getElementById("bk-" + id);
+  if (!card) {
+    // Card might not be rendered yet — scroll to All Bookings and try again
+    const allSection = document.getElementById("allBookingsList");
+    if (allSection) allSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    setTimeout(() => {
+      const retry = document.getElementById("bk-" + id);
+      if (retry) _flashCard(retry);
+    }, 800);
+    return;
+  }
+  _flashCard(card);
+}
+
+function _flashCard(card){
+  // Scroll it into view
+  card.scrollIntoView({ behavior: "smooth", block: "center" });
+  // Flash highlight animation
+  card.style.transition = "box-shadow .2s, outline .2s";
+  card.style.outline = "3px solid var(--red)";
+  card.style.boxShadow = "0 0 0 6px rgba(192,57,43,.15)";
+  card.style.borderRadius = "var(--radius-sm)";
+  // Add a "direct link" badge at the top of the card
+  if (!card.querySelector(".deep-link-badge")) {
+    const badge = document.createElement("div");
+    badge.className = "deep-link-badge";
+    badge.style.cssText = "background:var(--red);color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:4px;margin-bottom:8px;display:inline-block";
+    badge.textContent = "↗ Direct link";
+    card.insertBefore(badge, card.firstChild);
+  }
+  // Fade the highlight after 4 seconds
+  setTimeout(() => {
+    card.style.outline = "";
+    card.style.boxShadow = "";
+  }, 4000);
 }
 
 function renderAdminBookings(){
