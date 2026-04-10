@@ -177,9 +177,9 @@ textarea{resize:vertical;min-height:80px}
 
 <div class="app-header">
   <div class="header-inner">
-    <div class="header-logo">Point Cook CFA</div>
+    <div class="header-logo">CFA</div>
     <div class="header-text">
-      <h1>Appliance Booking</h1>
+      <h1>PCFB Appliance Booking</h1>
       <p>Point Cook CFA</p>
     </div>
   </div>
@@ -519,7 +519,7 @@ textarea{resize:vertical;min-height:80px}
 // After pasting, save the file and re-upload to GitHub Pages.
 // Every browser will then work automatically — no setup needed.
 // ══════════════════════════════════════════════════════════
-const HARDCODED_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzyXMlwru87bDMz78bhBTC2qI9B_fFwx7wLrXSL9HiC37Js4rdKCbIuZYIskklm14Df/exec"; // ← PASTE YOUR URL HERE
+const HARDCODED_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwFtTmFOIr8lj_n3SJZ_7wegZGv5cT66Zyp8yWZKFBtdnsVzYlNS3Zv8UJYACZcvxXk/exec"; // ← PASTE YOUR URL HERE
 
 // Runtime URL: hardcoded value takes priority over anything saved in browser
 let SCRIPT_URL  = HARDCODED_SCRIPT_URL || localStorage.getItem("pcfb_book_url") || "";
@@ -763,6 +763,7 @@ async function submitBooking(){
     status: "pending",
     submittedAt: new Date().toISOString(),
     adminEmail: ADMIN_EMAIL,
+    appUrl: window.location.href,
   };
 
   const synced = await postToSheets({ type:"new_booking", booking });
